@@ -1,7 +1,9 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-import sys,os
-from colorama import Fore, Back, Style
+import sys
+from subprocess import Popen,PIPE,check_call
+from colorama import Fore, Style
+from ini_edit import config_get, config_set
 
 def colorprint(verbosity, text):
     if verbosity == "fatal":
@@ -22,30 +24,61 @@ logo = ("""
         """)
 
 def volatility_screenshot():
-    os.system('clear')
-    print (logo)
-    colorprint("info","'volatility' will be used to create a screenshot(capable of illustrating window positions).")
-    colorprint("info","Waiting for file location...")
-    colorprint("warn","9-->Go back to the top menu")
-    colorprint("fatal","0-->Quit")
 
     while True:
-        file_path = raw_input("Axion TERMINAL("+Style.BRIGHT+Fore.CYAN+"/ram_analysis/volatility_screenshot"+Style.RESET_ALL+")\n-->")
 
-        if file_path == "9":
+        check_call(["clear"])
+        print (logo)
+        colorprint("info","'volatility' will be used to create a screenshot(capable of illustrating window positions).")
+
+        path = config_get('paths', 'path')
+        if path == '':
+            colorprint("fatal", "\n\tOh, it seems there is no path stored before :(")
+            colorprint("fatal","\n\tPlease specify one to continue:\n")
+            
+            path = raw_input("Axion TERMINAL("+Style.BRIGHT+Fore.CYAN+"/ram_analysis/volatility_cmdscan"+Style.RESET_ALL+")\n-->")
+
+            config_set('paths', 'path', path)
+            colorprint("info", "\nWell, we'll store this path for next operations...\n")
+
+        colorprint("success", "\n[*] Using "+path+"\n")
+
+        colorprint("warn","9-->Go back to the top menu")
+        colorprint("fatal","0-->Quit")
+
+        choice = raw_input(Style.DIM + Fore.WHITE + "Press Enter to continue or 'p' to new path..." + Style.RESET_ALL).lower()
+
+        if choice == "9":
             return
-        elif file_path == "0":
+        elif choice == "0":
             sys.exit()
-        
-        op_system = os.popen("volatility -f " + file_path + " imageinfo | grep Suggested | cut -d ',' -f1 | cut -d ':' -f2").read()
-        command = "volatility -f " + file_path + " --profile" + op_system.rstrip() + " screenshot -D screenshots/"
+        if choice == 'p':
+            path = raw_input("Axion TERMINAL("+Style.BRIGHT+Fore.CYAN+"/file_analysis/find_file_ext"+Style.RESET_ALL+")\n--> New path: ")
+            config_set('paths', 'path', path)
+            colorprint("success", "\n[*] Using "+path+"\n")
 
-        if op_system != "":
-            os.popen("mkdir screenshots").read()
-            colorprint("success",os.popen(command).read())
-            colorprint("warn","Created screenshots saved under 'screenshots' directory.")
+        colorprint("warn", "Please wait...")
+
+        std = Popen("volatility -f " + path + " imageinfo | grep Suggested | cut -d ',' -f1 | cut -d ':' -f2", shell=True, stdout=PIPE,stderr=PIPE)
+        (out, err) = std.communicate()
+
+        if err.find("The requested file doesn't exist") != -1:
+            colorprint("fatal" ,err)
+
         else:
-            colorprint("fatal","No such file :(")
+            out = out.rstrip()
+
+            if out.find("No") != -1:
+                colorprint("warn", out)
+                colorprint("fatal", "This file is not a RAM Dump file Restarting...")
+
+            else:
+                std = Popen("volatility -f " + path + " --profile" + out + " screenshot -D screenshots/", shell=True, stdout=PIPE,stderr=PIPE)
+                (out, err) = std.communicate()
+
+                colorprint("success", out)
+
+        raw_input(Style.DIM + Fore.WHITE + "Press Enter to continue..." + Style.RESET_ALL)
 
 if __name__ == "__main__":
     volatility_screenshot()

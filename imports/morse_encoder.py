@@ -88,14 +88,9 @@ def morse_encoder():
         else:
             morse_msg = encode_morse(text_msg)
             colorprint("success", "Your message encoded.")
-            print ("Message:\n--> ", morse_msg)
+            print ("Message:\n--> %s" % morse_msg)
 
-        colorprint("info", "Do you wanna decode another message? Y/N")
-        choice = raw_input(
-            "Axion TERMINAL(" + Style.BRIGHT + Fore.CYAN + "/crypto/morse_encoder" + Style.RESET_ALL + ")\n-->")
-
-        if choice == 'N':
-            return
+        raw_input(Style.DIM + Fore.WHITE + "Press Enter to continue..." + Style.RESET_ALL)
 
 if __name__ == "__main__":
     morse_encoder()
